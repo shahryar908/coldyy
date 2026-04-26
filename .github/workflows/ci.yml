@@ -1,0 +1,80 @@
+﻿name: Coldyy CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        service:
+          - backend
+          - frontend
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build Docker Image
+        run: |
+          if [ "${{ matrix.service }}" == "frontend" ]; then
+            BUILD_PATH="frontend"
+            BUILD_ARGS="--build-arg VITE_API_URL=${{ secrets.VITE_API_URL }}"
+          else
+            BUILD_PATH="backend"
+            BUILD_ARGS=""
+          fi
+
+          echo "Building ${{ matrix.service }} from $BUILD_PATH"
+
+          docker build $BUILD_ARGS \
+            -t ${{ secrets.DOCKERHUB_USERNAME }}/coldyy-${{ matrix.service }}:$IMAGE_TAG \
+            -t ${{ secrets.DOCKERHUB_USERNAME }}/coldyy-${{ matrix.service }}:latest \
+            $BUILD_PATH
+
+      - name: Push Docker Image
+        run: |
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/coldyy-${{ matrix.service }}:$IMAGE_TAG
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/coldyy-${{ matrix.service }}:latest
+
+  update-manifests:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update image tags in k8s manifests
+        run: |
+          USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
+          NEW_TAG=${{ github.sha }}
+
+          sed -i "s|${USERNAME}/coldyy-backend:.*|${USERNAME}/coldyy-backend:${NEW_TAG}|g" ops/k8s/backend.yml
+          sed -i "s|${USERNAME}/coldyy-frontend:.*|${USERNAME}/coldyy-frontend:${NEW_TAG}|g" ops/k8s/frontend.yml
+
+      - name: Commit and push updated manifests
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add ops/k8s/backend.yml ops/k8s/frontend.yml
+          git diff --staged --quiet || git commit -m "ci: update image tags to ${{ github.sha }}"
+          git push

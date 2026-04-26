@@ -1,0 +1,12 @@
+﻿apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: coldyy
+data:
+  SMTP_HOST: "smtp.gmail.com"
+  SMTP_PORT: "587"
+  SMTP_USER: "maharshahryar518@gmail.com"
+  FROM_NAME: "coldyy"
+  VITE_API_URL: "http://backend:8000"
+

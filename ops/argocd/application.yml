@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: coldyy
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/shahryar908/coldyy
+    targetRevision: main
+    path: ops/k8s
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: coldyy
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

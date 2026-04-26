@@ -1,0 +1,30 @@
+# Python
+backend/venv/
+backend/__pycache__/
+backend/prisma/__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+backend/prisma/dev.db
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+
+# Env files
+.env
+**/.env
+**/.env.local
+**/.env.*.local
+
+# Terraform
+ops/infra/.terraform/
+ops/infra/.terraform.lock.hcl
+ops/infra/*.tfstate
+ops/infra/*.tfstate.backup
+
+# OS
+.DS_Store
+Thumbs.db
